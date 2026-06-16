@@ -1,0 +1,40 @@
+name: Generer le manifeste des histoires
+
+# Regenere histoires/histoires.json a chaque ajout/suppression de .md
+on:
+  push:
+    paths:
+      - "histoires/**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lister les .md et ecrire le manifeste
+        run: |
+          cd histoires
+          # liste tous les .md (hors fichiers caches), triee, en tableau JSON
+          ls -1 *.md 2>/dev/null \
+            | sort \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))' \
+            > histoires.json
+          echo "Manifeste genere :"
+          cat histoires.json
+
+      - name: Commit si le manifeste a change
+        run: |
+          if git diff --quiet -- histoires/histoires.json; then
+            echo "Aucun changement."
+          else
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add histoires/histoires.json
+            git commit -m "chore: maj manifeste des histoires"
+            git push
+          fi
