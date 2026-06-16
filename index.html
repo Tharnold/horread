@@ -368,13 +368,15 @@ function firstWords(md,n){
 /* ---------- chargement ---------- */
 async function loadStory(i){
   if(cache[i]) return cache[i];
-  const url = FOLDER + STORIES[i].file;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(res.status+" "+res.statusText);
+  const name = (STORIES[i].file || "").trim();
+  // encodeURIComponent gere les accents, espaces et caracteres speciaux
+  const url = FOLDER + encodeURIComponent(name);
+  const res = await fetch(url, {cache:"no-cache"});
+  if(!res.ok) throw new Error(res.status+" "+res.statusText+" — "+name);
   const txt = await res.text();
   const { data, body } = parseFrontmatter(txt);
   const obj = {
-    title: data.titre || data.title || STORIES[i].file.replace(/\.md$/,""),
+    title: data.titre || data.title || name.replace(/\.md$/,""),
     author: data.auteur || data.author || "",
     date: data.date || "",
     duree: data.duree || "",
@@ -440,7 +442,7 @@ function renderCards(q){
   if(errs.length && !q){
     const e=document.createElement("div");e.className="empty";
     e.style.gridColumn="1/-1";e.style.color="var(--blood-bright)";
-    e.innerHTML=`⚠ ${errs.length} fichier(s) introuvable(s) : ${errs.map(x=>"<code>"+esc(x.file)+"</code>").join(", ")}. Ouvrez la page via un serveur local si besoin.`;
+    e.innerHTML=`⚠ ${errs.length} fichier(s) introuvable(s) :<br>${errs.map(x=>"<code>"+esc(x.file)+"</code> <small>("+esc(x.error||"erreur")+")</small>").join("<br>")}`;
     grid.appendChild(e);
   }
 }
