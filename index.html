@@ -225,7 +225,7 @@ header.masthead{
   <div class="grid" id="grid"></div>
 
   <div class="foot">
-    <span>Ajoutez vos récits dans <code>/histoires/*.md</code> puis dans la liste <code>STORIES</code>.</span>
+    <span>Déposez vos récits dans <code>/histoires/*.md</code> — le manifeste se met à jour tout seul.</span>
     <span id="yr"></span>
   </div>
 </div>
@@ -301,15 +301,17 @@ header.masthead{
 
 <script>
 /* =========================================================
-   LISTE DES HISTOIRES — ajoutez vos fichiers .md ici.
-   "file" = nom du fichier dans le dossier /histoires/
+   Les histoires sont découvertes automatiquement via le
+   manifeste "histoires/histoires.json", régénéré à chaque
+   push par la GitHub Action. Rien à modifier ici.
+   (Repli : si le manifeste est absent, on tente FALLBACK.)
 ========================================================= */
-const STORIES = [
-  { file:"le-locataire.md" },
-  { file:"photo-de-famille.md" },
-  { file:"l-application.md" },
-];
 const FOLDER = "histoires/";
+const MANIFEST = FOLDER + "histoires.json";
+// Repli optionnel si le manifeste n'existe pas (ex. ouverture sans build) :
+const FALLBACK = [];
+
+let STORIES = [];   // rempli au démarrage depuis le manifeste
 
 /* ---------- état ---------- */
 let META = [];          // métadonnées chargées
@@ -382,7 +384,21 @@ async function loadStory(i){
 /* ---------- bibliothèque ---------- */
 const grid=document.getElementById("grid"),countEl=document.getElementById("count"),searchEl=document.getElementById("search");
 
+async function fetchManifest(){
+  try{
+    const r = await fetch(MANIFEST, {cache:"no-cache"});
+    if(!r.ok) throw new Error(r.status);
+    const list = await r.json();
+    // accepte ["a.md", ...] ou [{file:"a.md"}, ...]
+    return list.map(x => typeof x === "string" ? {file:x} : x).filter(x=>x&&x.file);
+  }catch(e){
+    return FALLBACK.map(f=>({file:f}));
+  }
+}
+
 async function buildLibrary(){
+  grid.innerHTML=`<div class="empty">On dresse la table des récits…</div>`;
+  STORIES = await fetchManifest();
   grid.innerHTML="";
   META=[];
   for(let i=0;i<STORIES.length;i++){
