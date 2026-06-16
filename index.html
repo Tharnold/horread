@@ -320,12 +320,15 @@ const cache = {};
 
 /* ---------- mini parseur Markdown ---------- */
 function parseFrontmatter(txt){
-  const m = txt.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
+  // Nettoyage prealable : retire le BOM eventuel et normalise les fins de ligne
+  txt = txt.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const m = txt.match(/^---[ \t]*\n([\s\S]*?)\n---[ \t]*(?:\n|$)/);
   const data = {};
   let body = txt;
   if(m){
     body = txt.slice(m[0].length);
     m[1].split("\n").forEach(line=>{
+      if(!line.trim()) return;
       const i = line.indexOf(":");
       if(i>0){ data[line.slice(0,i).trim()] = line.slice(i+1).trim(); }
     });
